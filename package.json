@@ -1,0 +1,36 @@
+{
+  "name": "tally-analytics",
+  "version": "1.0.0",
+  "description": "React app for my tally app",
+  "private": true,
+  "type": "module",
+  "repository": "https://github.com/hdz-666/tally-analytics.git",
+  "author": "hdz666 <swapnayhardik@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.4.0",
+    "@ant-design/pro-components": "^2.7.14",
+    "@tanstack/react-query": "^5.56.2",
+    "antd": "^5.20.0",
+    "axios": "^1.7.7",
+    "dayjs": "^1.11.13",
+    "echarts": "^5.5.1",
+    "echarts-for-react": "^3.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.3"
+  }
+}
