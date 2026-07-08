@@ -8,6 +8,11 @@ export const salesApi = {
   getSalesByGroup: (params?: { from_date?: string; to_date?: string }) =>
     api.get<GroupSales[]>("/sales/by-group", { params }).then((r) => r.data),
 
-  getTopMovers: (limit = 20) =>
-    api.get<TopMover[]>("/sales/top-movers", { params: { limit } }).then((r) => r.data),
+  getTopMovers: (
+    limit = 20,
+    params?: { from_date?: string; to_date?: string; stock_group?: string },
+  ) =>
+    api
+      .get<TopMover[]>("/sales/top-movers", { params: { limit, ...params } })
+      .then((r) => r.data),
 };

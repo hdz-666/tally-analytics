@@ -9,6 +9,7 @@ import Inventory from "@/views/pages/Inventory";
 import Sales from "@/views/pages/Sales";
 import Forecast from "@/views/pages/Forecast";
 import Profile from "@/views/pages/Profile";
+import Ledger from "@/views/pages/Ledger";
 import Login from "@/views/pages/Login";
 
 const queryClient = new QueryClient({
@@ -37,6 +38,7 @@ function ProtectedRoutes() {
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/sales" element={<Sales />} />
         <Route path="/forecast" element={<Forecast />} />
+        <Route path="/ledger" element={<Ledger />} />
         <Route path="/profile" element={<Profile />} />
       </Route>
     </Routes>

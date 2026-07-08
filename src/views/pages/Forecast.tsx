@@ -13,8 +13,20 @@ import {
   Tag,
   Space,
   TreeSelect,
+  Tooltip,
+  Typography,
 } from "antd";
-import { PlayCircleOutlined, FileExcelOutlined } from "@ant-design/icons";
+import { PlayCircleOutlined, FileExcelOutlined, InfoCircleOutlined } from "@ant-design/icons";
+
+const { Text } = Typography;
+
+function InfoTip({ text }: { text: string }) {
+  return (
+    <Tooltip title={text}>
+      <InfoCircleOutlined style={{ marginLeft: 6, color: "#8c8c8c", fontSize: 12 }} />
+    </Tooltip>
+  );
+}
 import { exportReorderAlertsXls } from "@/utils/exportXls";
 import { useMonthlySales } from "@/viewmodels/useSales";
 import {
@@ -180,6 +192,25 @@ export default function Forecast() {
         </Row>
       )}
 
+      {/* Legend */}
+      <Row style={{ marginBottom: 12 }}>
+        <Col span={24}>
+          <Card size="small" style={{ background: "#fafafa" }} bordered={false}>
+            <Space size={24} wrap>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                <Tag color="red" style={{ marginRight: 4 }}>Order Now</Tag> Stock is at or below reorder point — place an order
+              </Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                <Tag color="green" style={{ marginRight: 4 }}>OK</Tag> Stock is sufficient for the forecast period
+              </Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                <InfoCircleOutlined /> Reorder Point uses past demand + safety buffer. Order Qty is the forecast demand for your lead time.
+              </Text>
+            </Space>
+          </Card>
+        </Col>
+      </Row>
+
       <Row>
         <Col span={24}>
           <Card
@@ -201,19 +232,34 @@ export default function Forecast() {
                 { title: "Item", dataIndex: "item" },
                 { title: "Group", dataIndex: "stock_group" },
                 {
-                  title: "Current Stock",
+                  title: (
+                    <span>
+                      Current Stock
+                      <InfoTip text="Quantity currently in hand from Tally" />
+                    </span>
+                  ),
                   dataIndex: "current_stock",
                   align: "right",
                   render: (v: number) => Number(v ?? 0).toFixed(2),
                 },
                 {
-                  title: "Reorder Point",
+                  title: (
+                    <span>
+                      Reorder Point
+                      <InfoTip text="Minimum stock level before you should reorder. Calculated as: Average monthly demand × Lead time + Safety buffer (based on demand variability)" />
+                    </span>
+                  ),
                   dataIndex: "reorder_point",
                   align: "right",
                   render: (v: number) => Number(v ?? 0).toFixed(2),
                 },
                 {
-                  title: "Order Qty",
+                  title: (
+                    <span>
+                      Order Qty
+                      <InfoTip text="Suggested quantity to order = forecasted demand for the lead time period. Changes with the forecast horizon you select." />
+                    </span>
+                  ),
                   dataIndex: "reorder_qty",
                   align: "right",
                   render: (v: number) => Number(v ?? 0).toFixed(2),

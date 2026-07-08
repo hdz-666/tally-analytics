@@ -1,6 +1,7 @@
 export interface MonthlySales {
   month: string;
   item: string;
+  stock_group: string | null;
   sold_qty: number;
   sold_amount: number;
 }

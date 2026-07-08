@@ -9,6 +9,8 @@ import {
   LineChartOutlined,
   ShoppingCartOutlined,
   RiseOutlined,
+  BarChartOutlined,
+  BankOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/context/AuthContext";
 
@@ -18,6 +20,7 @@ const menuItems = [
   { path: "/sales", name: "Sales", icon: <LineChartOutlined /> },
   { path: "/purchases", name: "Purchases", icon: <ShoppingCartOutlined /> },
   { path: "/forecast", name: "Forecast", icon: <RiseOutlined /> },
+  { path: "/ledger", name: "Ledger & P&L", icon: <BankOutlined /> },
 ];
 
 export default function AppLayout() {
@@ -33,7 +36,7 @@ export default function AppLayout() {
   return (
     <ProLayout
       title="Tally Analytics"
-      logo={null}
+      logo={<BarChartOutlined />}
       layout="side"
       route={{ routes: menuItems }}
       location={location}

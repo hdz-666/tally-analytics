@@ -24,11 +24,16 @@ export default function SalesTrendChart({ data }: Props) {
 
   const option = {
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    legend: { bottom: 0, type: "scroll" },
+    legend: { bottom: 30, type: "scroll" },
+    grid: { left: 60, right: 20, top: 20, bottom: 80 },
     xAxis: { type: "category", data: months, axisLabel: { rotate: 45 } },
     yAxis: { type: "value", name: "₹ Amount" },
+    dataZoom: [
+      { type: "inside", xAxisIndex: 0 },
+      { type: "slider", xAxisIndex: 0, bottom: 8, height: 18 },
+    ],
     series,
   };
 
-  return <ReactECharts option={option} style={{ height: 360 }} />;
+  return <ReactECharts option={option} style={{ height: 420 }} />;
 }

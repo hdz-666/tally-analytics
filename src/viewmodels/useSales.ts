@@ -17,8 +17,11 @@ export const useSalesByGroup = (params?: { from_date?: string; to_date?: string 
     queryFn: () => salesApi.getSalesByGroup(params),
   });
 
-export const useTopMovers = (limit = 20) =>
+export const useTopMovers = (
+  limit = 20,
+  params?: { from_date?: string; to_date?: string; stock_group?: string },
+) =>
   useQuery({
-    queryKey: ["sales", "top-movers", limit],
-    queryFn: () => salesApi.getTopMovers(limit),
+    queryKey: ["sales", "top-movers", limit, params],
+    queryFn: () => salesApi.getTopMovers(limit, params),
   });
