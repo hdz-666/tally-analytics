@@ -14,7 +14,8 @@ import {
   Space,
   TreeSelect,
 } from "antd";
-import { PlayCircleOutlined } from "@ant-design/icons";
+import { PlayCircleOutlined, FileExcelOutlined } from "@ant-design/icons";
+import { exportReorderAlertsXls } from "@/utils/exportXls";
 import { useMonthlySales } from "@/viewmodels/useSales";
 import {
   useForecastItems,
@@ -151,6 +152,15 @@ export default function Forecast() {
               onClick={() => runForecast.mutate(horizonMonths)}
             >
               Run Forecast
+            </Button>
+            <Button
+              icon={<FileExcelOutlined />}
+              disabled={filteredAlerts.length === 0}
+              onClick={() =>
+                exportReorderAlertsXls(filteredAlerts, selectedGroup)
+              }
+            >
+              Export XLS for reorder
             </Button>
           </Space>
         </Col>
