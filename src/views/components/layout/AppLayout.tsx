@@ -1,8 +1,9 @@
 import { ProLayout } from "@ant-design/pro-components";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Avatar, Dropdown } from "antd";
-import { LogoutOutlined, UserOutlined } from "@ant-design/icons";
+import { Avatar, Tooltip } from "antd";
 import {
+  LogoutOutlined,
+  UserOutlined,
   DashboardOutlined,
   StockOutlined,
   LineChartOutlined,
@@ -29,23 +30,6 @@ export default function AppLayout() {
     navigate("/login");
   };
 
-  const avatarMenu = {
-    items: [
-      {
-        key: "email",
-        label: user?.email ?? "",
-        disabled: true,
-      },
-      { type: "divider" as const },
-      {
-        key: "logout",
-        icon: <LogoutOutlined />,
-        label: "Sign Out",
-        onClick: handleSignOut,
-      },
-    ],
-  };
-
   return (
     <ProLayout
       title="Tally Analytics"
@@ -56,18 +40,43 @@ export default function AppLayout() {
       menuItemRender={(item, dom) => (
         <span onClick={() => item.path && navigate(item.path)}>{dom}</span>
       )}
-      avatarProps={{
-        src: null,
-        icon: <UserOutlined />,
-        size: "small",
-        render: (_props, _dom) => (
-          <Dropdown menu={avatarMenu} trigger={["click"]}>
-            <span style={{ cursor: "pointer" }}>
-              <Avatar size="small" icon={<UserOutlined />} />
-            </span>
-          </Dropdown>
-        ),
-      }}
+      menuFooterRender={() => (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 16px",
+            borderTop: "1px solid rgba(0,0,0,0.06)",
+          }}
+        >
+          <Avatar
+            size={32}
+            icon={<UserOutlined />}
+            style={{ cursor: "pointer", flexShrink: 0 }}
+            onClick={() => navigate("/profile")}
+          />
+          <span
+            onClick={() => navigate("/profile")}
+            style={{
+              flex: 1,
+              fontSize: 13,
+              cursor: "pointer",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {user?.email?.split("@")[0]}
+          </span>
+          <Tooltip title="Sign Out">
+            <LogoutOutlined
+              onClick={handleSignOut}
+              style={{ fontSize: 16, cursor: "pointer", color: "#ff4d4f" }}
+            />
+          </Tooltip>
+        </div>
+      )}
     >
       <Outlet />
     </ProLayout>
