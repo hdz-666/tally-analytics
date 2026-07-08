@@ -60,7 +60,7 @@ export default function AppLayout() {
         src: null,
         icon: <UserOutlined />,
         size: "small",
-        render: (_props, dom) => (
+        render: (_props, _dom) => (
           <Dropdown menu={avatarMenu} trigger={["click"]}>
             <span style={{ cursor: "pointer" }}>
               <Avatar size="small" icon={<UserOutlined />} />
