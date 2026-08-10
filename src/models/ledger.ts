@@ -12,13 +12,33 @@ export interface LedgerHealth {
   total_receipts: number;
   total_invoiced: number;
   total_received: number;
+  overdue_days: number;
+  aging_bucket: "credit" | "current" | "1_30" | "31_60" | "60plus";
   score_dso: number;
-  score_overdue: number;
+  score_aging: number;
   score_recency: number;
   score_engagement: number;
   score_balance_ratio: number;
   health_score: number;
   health_rag: "green" | "amber" | "red";
+}
+
+export interface AgingSummary {
+  total_receivable: number;
+  current_ar: number;
+  overdue_1_30: number;
+  overdue_31_60: number;
+  overdue_60plus: number;
+  credit_balance: number;
+  current_count: number;
+  overdue_1_30_count: number;
+  overdue_31_60_count: number;
+  overdue_60plus_count: number;
+  credit_count: number;
+  total_revenue_12m: number;
+  portfolio_dso: number | null;
+  best_possible_dso: number | null;
+  add_days: number | null;
 }
 
 export interface PnlMonthly {
