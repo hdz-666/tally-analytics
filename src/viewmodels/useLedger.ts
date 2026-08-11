@@ -8,6 +8,12 @@ export const useLedgerHealth = () =>
     queryFn: ledgerApi.getHealth,
   });
 
+export const useAgingSummary = () =>
+  useQuery({
+    queryKey: ["ledger", "aging-summary"],
+    queryFn: ledgerApi.getAgingSummary,
+  });
+
 export const usePnlMonthly = () =>
   useQuery({
     queryKey: ["ledger", "pnl"],

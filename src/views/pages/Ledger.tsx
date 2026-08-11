@@ -25,7 +25,7 @@ import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import ReactECharts from "echarts-for-react";
 import type { TableProps } from "antd";
-import { useLedgerHealth, usePnlMonthly, useRefreshLedger } from "@/viewmodels/useLedger";
+import { useLedgerHealth, useAgingSummary, usePnlMonthly, useRefreshLedger } from "@/viewmodels/useLedger";
 import type { LedgerHealth, PnlMonthly } from "@/models/ledger";
 
 const { Text } = Typography;
@@ -51,6 +51,25 @@ const ragLabel: Record<string, string> = {
   red: "Critical",
 };
 
+const bucketLabel: Record<string, string> = {
+  credit: "Credit",
+  current: "Current",
+  "1_30": "1–30d",
+  "31_60": "31–60d",
+  "60plus": "60d+",
+};
+
+const bucketColor: Record<string, string> = {
+  credit: "purple",
+  current: "green",
+  "1_30": "gold",
+  "31_60": "orange",
+  "60plus": "red",
+};
+
+// ECharts colors matching the Tag colors above
+const agingPieColors = ["#722ed1", "#52c41a", "#fadb14", "#fa8c16", "#ff4d4f"];
+
 function InfoTip({ text }: { text: string }) {
   return (
     <Tooltip title={text}>
@@ -63,6 +82,7 @@ function InfoTip({ text }: { text: string }) {
 
 function LedgerHealthTab() {
   const { data: rows = [], isLoading } = useLedgerHealth();
+  const { data: aging } = useAgingSummary();
   const refresh = useRefreshLedger();
   const [search, setSearch] = useState("");
 
@@ -96,14 +116,23 @@ function LedgerHealthTab() {
       title: (
         <span>
           Outstanding
-          <InfoTip text="Total unpaid amount this customer currently owes you (from Tally closing balance)" />
+          <InfoTip text="Amount this customer owes you. Negative (Cr) means you owe them — they've overpaid or have an advance." />
         </span>
       ),
       dataIndex: "outstanding_amount",
       align: "right",
       sorter: (a, b) => a.outstanding_amount - b.outstanding_amount,
       defaultSortOrder: "descend",
-      render: (v: number) => <Text strong>₹{fmt(v)}</Text>,
+      render: (v: number) =>
+        v < 0 ? (
+          <Tooltip title="Credit balance — you owe this customer money">
+            <Text strong type="success">
+              ₹{fmt(-v)} Cr
+            </Text>
+          </Tooltip>
+        ) : (
+          <Text strong>₹{fmt(v)}</Text>
+        ),
     },
     {
       title: (
@@ -170,8 +199,31 @@ function LedgerHealthTab() {
     {
       title: (
         <span>
+          Aging
+          <InfoTip text="How overdue this customer is. Current = within credit terms. 1–30d / 31–60d / 60d+ = days past due. Credit = they've overpaid." />
+        </span>
+      ),
+      dataIndex: "aging_bucket",
+      width: 100,
+      filters: [
+        { text: "Credit", value: "credit" },
+        { text: "Current", value: "current" },
+        { text: "1–30d", value: "1_30" },
+        { text: "31–60d", value: "31_60" },
+        { text: "60d+", value: "60plus" },
+      ],
+      onFilter: (val, r) => r.aging_bucket === val,
+      render: (v: string, r: LedgerHealth) => (
+        <Tag color={bucketColor[v]}>
+          {bucketLabel[v]}{r.overdue_days > 0 ? ` (${r.overdue_days}d)` : ""}
+        </Tag>
+      ),
+    },
+    {
+      title: (
+        <span>
           Health Score
-          <InfoTip text="Composite score 0–100. Components: DSO ratio (30), Overdue flag (25), Payment recency (20), Engagement (15), Balance ratio (10). Higher = healthier." />
+          <InfoTip text="Composite score 0–100. Components: DSO ratio (30), Aging bucket (25 → 15 → 6 → 0 by severity), Credit-term recency (20), Engagement (15), Balance ratio (10). Higher = healthier." />
         </span>
       ),
       dataIndex: "health_score",
@@ -241,9 +293,16 @@ function LedgerHealthTab() {
           value={r.days_since_last_receipt >= 999 ? "Never" : `${r.days_since_last_receipt}d`}
         />
       </Col>
+      <Col span={4}>
+        <Statistic
+          title="Days Overdue"
+          value={r.overdue_days > 0 ? `${r.overdue_days}d` : "—"}
+          valueStyle={{ color: r.overdue_days > 0 ? "#cf1322" : undefined }}
+        />
+      </Col>
       <Col span={24} style={{ marginTop: 12 }}>
         <Text type="secondary" style={{ fontSize: 12 }}>
-          Score breakdown — DSO: {r.score_dso} | Overdue: {r.score_overdue} | Recency: {r.score_recency} | Engagement: {r.score_engagement} | Balance: {r.score_balance_ratio}
+          Score breakdown — DSO: {r.score_dso} | Aging: {r.score_aging} | Recency: {r.score_recency} | Engagement: {r.score_engagement} | Balance: {r.score_balance_ratio}
         </Text>
       </Col>
     </Row>
@@ -330,6 +389,86 @@ function LedgerHealthTab() {
               }
               value={fmtCr(totalRevenue12m)}
             />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* DSO / ADD stats + Aging donut */}
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title={
+                <span>
+                  Portfolio DSO
+                  <InfoTip text="(Total AR ÷ 12M Revenue) × 365. Days of revenue tied up in unpaid invoices across your entire customer base." />
+                </span>
+              }
+              value={aging?.portfolio_dso != null ? `${aging.portfolio_dso}d` : "—"}
+              valueStyle={{ color: (aging?.portfolio_dso ?? 0) > 45 ? "#cf1322" : "#3f8600" }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title={
+                <span>
+                  Best Possible DSO
+                  <InfoTip text="(Current AR only ÷ 12M Revenue) × 365. What your DSO would be if no one was late — a baseline for how low DSO can realistically go." />
+                </span>
+              }
+              value={aging?.best_possible_dso != null ? `${aging.best_possible_dso}d` : "—"}
+              valueStyle={{ color: "#1677ff" }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title={
+                <span>
+                  ADD (Delinquency)
+                  <InfoTip text="Average Days Delinquent = Portfolio DSO − Best Possible DSO. Days lost purely to late payment. Zero means everyone pays exactly on time; higher means collections are slipping." />
+                </span>
+              }
+              value={aging?.add_days != null ? `${aging.add_days}d` : "—"}
+              valueStyle={{ color: (aging?.add_days ?? 0) > 15 ? "#cf1322" : "#3f8600" }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small" style={{ height: "100%" }}>
+            <ReactECharts
+              style={{ height: 100 }}
+              option={{
+                tooltip: {
+                  trigger: "item",
+                  formatter: (p: any) => `${p.name}: ₹${fmt(p.value)} (${p.percent}%)`,
+                },
+                color: agingPieColors,
+                series: [
+                  {
+                    type: "pie",
+                    radius: ["45%", "70%"],
+                    data: aging
+                      ? [
+                          { name: "Credit", value: aging.credit_balance },
+                          { name: "Current", value: aging.current_ar },
+                          { name: "1–30d", value: aging.overdue_1_30 },
+                          { name: "31–60d", value: aging.overdue_31_60 },
+                          { name: "60d+", value: aging.overdue_60plus },
+                        ].filter((d) => d.value > 0)
+                      : [],
+                    label: { show: false },
+                    emphasis: { label: { show: false } },
+                  },
+                ],
+              }}
+            />
+            <div style={{ textAlign: "center", fontSize: 11, color: "#8c8c8c", marginTop: -8 }}>
+              AR Aging Mix
+            </div>
           </Card>
         </Col>
       </Row>
