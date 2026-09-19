@@ -11,6 +11,7 @@ import {
   RiseOutlined,
   BarChartOutlined,
   BankOutlined,
+  EnvironmentOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/context/AuthContext";
 
@@ -18,6 +19,7 @@ const menuItems = [
   { path: "/", name: "Dashboard", icon: <DashboardOutlined /> },
   { path: "/inventory", name: "Inventory", icon: <StockOutlined /> },
   { path: "/sales", name: "Sales", icon: <LineChartOutlined /> },
+  { path: "/area-sales", name: "Area Sales", icon: <EnvironmentOutlined /> },
   { path: "/purchases", name: "Purchases", icon: <ShoppingCartOutlined /> },
   { path: "/forecast", name: "Forecast", icon: <RiseOutlined /> },
   { path: "/ledger", name: "Ledger & P&L", icon: <BankOutlined /> },
