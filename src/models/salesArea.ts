@@ -27,6 +27,8 @@ export interface PincodeSales {
   pincode: string;
   area: string;
   state: string | null;
+  lat: number;
+  lon: number;
   sold_qty: number;
   sold_amount: number;
   client_count: number;

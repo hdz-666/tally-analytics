@@ -35,3 +35,14 @@ export const usePincodeSales = (params?: Omit<AreaSalesFilters, "pincode">) =>
     queryKey: ["sales", "pincodes", params],
     queryFn: () => salesAreaApi.getPincodes(params),
   });
+
+export const useAreaPincodes = (
+  area: string | undefined,
+  params?: Omit<AreaSalesFilters, "pincode">,
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: ["sales", "by-area", area, "pincodes", params],
+    queryFn: () => salesAreaApi.getAreaPincodes(area as string, params),
+    enabled: enabled && !!area,
+  });

@@ -28,4 +28,9 @@ export const salesAreaApi = {
 
   getPincodes: (params?: Omit<AreaSalesFilters, "pincode">) =>
     api.get<PincodeSales[]>("/sales/pincodes", { params }).then((r) => r.data),
+
+  getAreaPincodes: (area: string, params?: Omit<AreaSalesFilters, "pincode">) =>
+    api
+      .get<PincodeSales[]>(`/sales/by-area/${encodeURIComponent(area)}/pincodes`, { params })
+      .then((r) => r.data),
 };

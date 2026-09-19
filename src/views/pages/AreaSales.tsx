@@ -11,10 +11,16 @@ import {
   useAreaClients,
   useClientItems,
   usePincodeSales,
+  useAreaPincodes,
 } from "@/viewmodels/useSalesArea";
 import { useStockItems, useStockGroups } from "@/viewmodels/useStock";
 import type { StockGroup } from "@/models/stock";
-import type { AreaSales as AreaSalesRow, AreaClient, ClientItem } from "@/models/salesArea";
+import type {
+  AreaSales as AreaSalesRow,
+  AreaClient,
+  ClientItem,
+  PincodeSales,
+} from "@/models/salesArea";
 import type { AreaSalesFilters } from "@/services/salesAreaApi";
 
 const fmt = (v: number) =>
@@ -51,6 +57,18 @@ function blueShade(t: number): string {
 }
 
 type FilterParams = AreaSalesFilters | undefined;
+
+interface MapPoint {
+  key: string;
+  label: string;
+  area: string;
+  lat: number;
+  lon: number;
+  sold_amount: number;
+  client_count: number;
+  confidence: AreaSalesRow["resolution_level"];
+  kind: "pincode" | "residual";
+}
 
 function getDescendantGroups(groups: StockGroup[], root: string): Set<string> {
   const set = new Set<string>([root]);
@@ -141,6 +159,52 @@ function AreaClientsTable({ area, dateParams }: { area: string; dateParams: Filt
   );
 }
 
+// Pincode-level breakdown within one city — sits between the city total and
+// its clients so the sales team can see which locality to target. Cities
+// resolved only at town/state level have no pincode rows at all, in which
+// case this falls straight back to the client list instead of showing an
+// empty table.
+function AreaPincodesTable({ area, dateParams }: { area: string; dateParams: FilterParams }) {
+  const { data = [], isLoading } = useAreaPincodes(area, dateParams);
+
+  if (!isLoading && data.length === 0) {
+    return <AreaClientsTable area={area} dateParams={dateParams} />;
+  }
+
+  const columns: ColumnsType<PincodeSales> = [
+    { title: "Pincode", dataIndex: "pincode" },
+    { title: "Clients", dataIndex: "client_count", align: "right" },
+    { title: "Qty Sold", dataIndex: "sold_qty", align: "right", render: qtyFmt },
+    {
+      title: "Sales Value",
+      dataIndex: "sold_amount",
+      align: "right",
+      render: fmt,
+      sorter: (a, b) => a.sold_amount - b.sold_amount,
+      defaultSortOrder: "descend",
+    },
+  ];
+
+  return (
+    <Table
+      size="small"
+      loading={isLoading}
+      rowKey="pincode"
+      dataSource={data}
+      pagination={false}
+      columns={columns}
+      expandable={{
+        expandedRowRender: (pin) => (
+          <AreaClientsTable
+            area={area}
+            dateParams={{ ...dateParams, pincode: pin.pincode }}
+          />
+        ),
+      }}
+    />
+  );
+}
+
 export default function AreaSales() {
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>([
     dayjs().subtract(23, "month").startOf("month"),
@@ -209,9 +273,18 @@ export default function AreaSales() {
     [areas],
   );
 
-  // Filtering by area is a client-side narrow of the already-fetched list —
-  // the sales team picks their territory and the map/histogram/table all
-  // update to just that city/district, no extra request needed.
+  // The area/city picker is a client-side narrow on top of whatever the
+  // server-side filters (pincode/product/category/date) already returned.
+  // If those change and the selected city drops out of the result — e.g. a
+  // picked pincode belongs to a different city than the one still selected
+  // here — silently clear it instead of filtering everything down to
+  // nothing on the map/table.
+  useEffect(() => {
+    if (selectedArea && areas.length > 0 && !areas.some((a) => a.area === selectedArea)) {
+      setSelectedArea(undefined);
+    }
+  }, [areas, selectedArea]);
+
   const filteredAreas = useMemo(
     () => (selectedArea ? areas.filter((a) => a.area === selectedArea) : areas),
     [areas, selectedArea],
@@ -222,11 +295,78 @@ export default function AreaSales() {
     [areas, selectedArea],
   );
 
-  // Marker size/color scale stays anchored to the full (unfiltered) set so a
-  // selected city's bubble doesn't jump to "maximum" just because it's alone.
+  // The map plots one dot per pincode (real segregation within a city)
+  // instead of one blob per city. Whatever a city's total doesn't tie back
+  // to a specific pincode (most parties are only resolved to town/state
+  // level) gets a single "other addresses" dot at the city's own point, so
+  // the dots for a city still sum to that city's true total — nothing is
+  // silently dropped from the map.
+  const mapPoints = useMemo<MapPoint[]>(() => {
+    // A specific pincode is already a single point server-side (by-area is
+    // filtered to it) — no need to reconstruct pincode/residual dots.
+    if (selectedPincode) {
+      return filteredAreas.map((a) => ({
+        key: `area:${a.area}`,
+        label: `${selectedPincode} (${a.area})`,
+        area: a.area,
+        lat: a.lat,
+        lon: a.lon,
+        sold_amount: a.sold_amount,
+        client_count: a.client_count,
+        confidence: a.resolution_level,
+        kind: "pincode",
+      }));
+    }
+
+    const scopedPincodes = selectedArea
+      ? pincodes.filter((p) => p.area === selectedArea)
+      : pincodes;
+
+    const pincodeTotalByArea = new Map<string, number>();
+    for (const p of scopedPincodes) {
+      pincodeTotalByArea.set(p.area, (pincodeTotalByArea.get(p.area) ?? 0) + p.sold_amount);
+    }
+
+    const pincodePoints: MapPoint[] = scopedPincodes.map((p) => ({
+      key: `pincode:${p.pincode}`,
+      label: `${p.pincode} (${p.area})`,
+      area: p.area,
+      lat: p.lat,
+      lon: p.lon,
+      sold_amount: p.sold_amount,
+      client_count: p.client_count,
+      confidence: "pincode",
+      kind: "pincode",
+    }));
+
+    const residualPoints: MapPoint[] = filteredAreas.flatMap((a) => {
+      const pinTotal = pincodeTotalByArea.get(a.area) ?? 0;
+      const residual = a.sold_amount - pinTotal;
+      if (residual <= 1) return [];
+      return [
+        {
+          key: `residual:${a.area}`,
+          label: pinTotal > 0 ? `${a.area} — other addresses` : a.area,
+          area: a.area,
+          lat: a.lat,
+          lon: a.lon,
+          sold_amount: residual,
+          client_count: a.client_count,
+          confidence: pinTotal > 0 ? ("town" as const) : a.resolution_level,
+          kind: "residual" as const,
+        },
+      ];
+    });
+
+    return [...pincodePoints, ...residualPoints];
+  }, [pincodes, filteredAreas, selectedArea, selectedPincode]);
+
+  // Marker size/color scale is anchored to the full (unfiltered) point set so
+  // a selected city/pincode's dot doesn't jump to "maximum" just because
+  // it's alone on screen.
   const maxAmount = useMemo(
-    () => areas.reduce((max, a) => Math.max(max, a.sold_amount), 1),
-    [areas],
+    () => mapPoints.reduce((max, p) => Math.max(max, p.sold_amount), 1),
+    [mapPoints],
   );
 
   const markerRadius = (amount: number) => 6 + 26 * Math.sqrt(amount / maxAmount);
@@ -363,9 +503,12 @@ export default function AreaSales() {
         <Col span={24}>
           <Card title="Sales by Area" extra={filters}>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-              Bubble size and color show sales value per area. Areas resolved only
-              at town or state level (see the Confidence column below) are an
-              approximation — most parties don't have a pincode on file.
+              Each dot is one pincode, sized and colored by its sales value —
+              a city with several dots close together means sales spread
+              across multiple localities there. A dashed "other addresses"
+              dot picks up whatever sales in that city aren't tied to a
+              specific pincode, so every city's dots still add up to its true
+              total. Select a city or search a pincode below to zoom in.
             </Typography.Paragraph>
             <MapContainer
               center={MP_CENTER}
@@ -378,25 +521,25 @@ export default function AreaSales() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <FlyToArea target={selectedAreaRow} />
-              {filteredAreas.map((a) => (
+              {mapPoints.map((p) => (
                 <CircleMarker
-                  key={a.area}
-                  center={[a.lat, a.lon]}
-                  radius={markerRadius(a.sold_amount)}
+                  key={p.key}
+                  center={[p.lat, p.lon]}
+                  radius={markerRadius(p.sold_amount)}
                   pathOptions={{
-                    color: blueShade(a.sold_amount / maxAmount),
-                    fillColor: blueShade(a.sold_amount / maxAmount),
-                    fillOpacity: RESOLUTION_OPACITY[a.resolution_level],
-                    opacity: RESOLUTION_OPACITY[a.resolution_level],
-                    dashArray: a.resolution_level === "state" ? "4 3" : undefined,
+                    color: blueShade(p.sold_amount / maxAmount),
+                    fillColor: blueShade(p.sold_amount / maxAmount),
+                    fillOpacity: RESOLUTION_OPACITY[p.confidence],
+                    opacity: RESOLUTION_OPACITY[p.confidence],
+                    dashArray: p.kind === "residual" ? "4 3" : undefined,
                   }}
                 >
                   <LeafletTooltip>
-                    <strong>{a.area}</strong>
+                    <strong>{p.label}</strong>
                     <br />
-                    {fmt(a.sold_amount)} · {a.client_count} client{a.client_count === 1 ? "" : "s"}
+                    {fmt(p.sold_amount)} · {p.client_count} client{p.client_count === 1 ? "" : "s"}
                     <br />
-                    {RESOLUTION_LABEL[a.resolution_level]}
+                    {RESOLUTION_LABEL[p.confidence]}
                   </LeafletTooltip>
                 </CircleMarker>
               ))}
@@ -411,7 +554,7 @@ export default function AreaSales() {
         </Col>
 
         <Col span={24}>
-          <Card title="Area → Client → Product Drill-down" extra={filters}>
+          <Card title="Area → Pincode → Client → Product Drill-down" extra={filters}>
             <Table
               loading={isLoading}
               rowKey="area"
@@ -419,7 +562,7 @@ export default function AreaSales() {
               columns={columns}
               expandable={{
                 expandedRowRender: (area) => (
-                  <AreaClientsTable area={area.area} dateParams={dateParams} />
+                  <AreaPincodesTable area={area.area} dateParams={dateParams} />
                 ),
               }}
             />
