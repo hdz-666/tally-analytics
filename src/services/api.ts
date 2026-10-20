@@ -4,6 +4,9 @@ import { supabase } from "@/lib/supabase";
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
   headers: { "Content-Type": "application/json" },
+  // Axios defaults array params to `key[]=a&key[]=b`; FastAPI's `list[str]`
+  // Query params expect repeated `key=a&key=b` instead.
+  paramsSerializer: { indexes: null },
 });
 
 api.interceptors.request.use(async (config) => {
