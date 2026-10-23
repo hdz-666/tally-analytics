@@ -8,7 +8,13 @@ interface Props {
 
 export default function SalesTrendChart({ data }: Props) {
   const groups = [...new Set(data.map((d) => d.stock_group))];
-  const months = [...new Set(data.map((d) => dayjs(d.month).format("MMM YY")))];
+  const months = [
+    ...new Set(
+      [...data]
+        .sort((a, b) => dayjs(a.month).valueOf() - dayjs(b.month).valueOf())
+        .map((d) => dayjs(d.month).format("MMM YY"))
+    ),
+  ];
 
   const series = groups.map((group) => ({
     name: group,
@@ -35,5 +41,5 @@ export default function SalesTrendChart({ data }: Props) {
     series,
   };
 
-  return <ReactECharts option={option} style={{ height: 420 }} />;
+  return <ReactECharts option={option} notMerge style={{ height: 420 }} />;
 }
