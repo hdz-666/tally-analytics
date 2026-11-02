@@ -1,6 +1,6 @@
 import { Button, Card, Descriptions, Typography, Divider, Avatar } from "antd";
 import { LogoutOutlined, UserOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Profile() {

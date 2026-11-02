@@ -1,5 +1,5 @@
 import { ProLayout } from "@ant-design/pro-components";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router";
 import { Avatar, Tooltip } from "antd";
 import {
   LogoutOutlined,
