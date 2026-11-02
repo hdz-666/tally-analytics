@@ -98,6 +98,8 @@ export default function Forecast() {
     value: g.name,
   }));
 
+  const itemForecast = forecast.filter((f) => f.item === selectedItem);
+
   const itemOptions = stockItems.map((s) => ({ label: s.name, value: s.name }));
 
   // Compute descendant group set for alert filtering
@@ -181,10 +183,18 @@ export default function Forecast() {
       {selectedItem && (
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={24}>
-            <Card>
+            <Card
+              extra={
+                itemForecast.some((f) => f.model_used === "naive") && (
+                  <Tooltip title="This item has under 3 months of sales, so the forecast is a flat line at its average monthly sales so far. It will switch to the trend model once there is more history.">
+                    <Tag color="orange">Low history</Tag>
+                  </Tooltip>
+                )
+              }
+            >
               <ForecastChart
                 actual={actual.filter((s) => s.item === selectedItem)}
-                forecast={forecast.filter((f) => f.item === selectedItem)}
+                forecast={itemForecast}
                 item={selectedItem}
               />
             </Card>
