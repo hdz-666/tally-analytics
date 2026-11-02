@@ -5,6 +5,7 @@ export interface ForecastPoint {
   forecast_qty: number;
   lower_bound: number;
   upper_bound: number;
+  model_used?: string | null;
 }
 
 export interface ReorderAlert {
