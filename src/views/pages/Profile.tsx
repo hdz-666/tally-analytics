@@ -2,9 +2,10 @@ import { Button, Card, Descriptions, Typography, Divider, Avatar } from "antd";
 import { LogoutOutlined, UserOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router";
 import { useAuth } from "@/context/AuthContext";
+import { ROLE_LABELS } from "@/models/user";
 
 export default function Profile() {
-  const { user, signOut } = useAuth();
+  const { user, me, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -30,7 +31,7 @@ export default function Profile() {
               {user?.email}
             </Typography.Title>
             <Typography.Text type="secondary">
-              {user?.role ?? "authenticated"}
+              {me ? ROLE_LABELS[me.role] : "—"}
             </Typography.Text>
           </div>
         </div>
@@ -42,6 +43,11 @@ export default function Profile() {
               {user?.id ?? "—"}
             </Typography.Text>
           </Descriptions.Item>
+          {me?.role === "company_exec" && (
+            <Descriptions.Item label="Categories">
+              {me.categories.join(", ") || "—"}
+            </Descriptions.Item>
+          )}
           <Descriptions.Item label="Account Created">{createdAt}</Descriptions.Item>
           <Descriptions.Item label="Last Sign In">{lastSignIn}</Descriptions.Item>
         </Descriptions>

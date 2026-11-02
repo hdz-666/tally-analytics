@@ -12,8 +12,10 @@ import {
   BarChartOutlined,
   BankOutlined,
   EnvironmentOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/context/AuthContext";
+import { canAccess } from "@/lib/access";
 
 const menuItems = [
   { path: "/", name: "Dashboard", icon: <DashboardOutlined /> },
@@ -23,12 +25,14 @@ const menuItems = [
   { path: "/purchases", name: "Purchases", icon: <ShoppingCartOutlined /> },
   { path: "/forecast", name: "Forecast", icon: <RiseOutlined /> },
   { path: "/ledger", name: "Ledger & P&L", icon: <BankOutlined /> },
+  { path: "/users", name: "Users", icon: <TeamOutlined /> },
 ];
 
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, role, signOut } = useAuth();
+  const visibleItems = menuItems.filter((item) => canAccess(role, item.path));
 
   const handleSignOut = async () => {
     await signOut();
@@ -40,7 +44,7 @@ export default function AppLayout() {
       title="Tally Analytics"
       logo={<BarChartOutlined />}
       layout="side"
-      route={{ routes: menuItems }}
+      route={{ routes: visibleItems }}
       location={location}
       menuItemRender={(item, dom) => (
         <span onClick={() => item.path && navigate(item.path)}>{dom}</span>
