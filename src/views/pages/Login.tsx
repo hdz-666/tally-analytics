@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Form, Input, Button, Card, Typography, Alert } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useAuth } from "@/context/AuthContext";
 
 const { Title } = Typography;
